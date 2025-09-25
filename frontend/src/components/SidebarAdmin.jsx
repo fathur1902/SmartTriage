@@ -1,13 +1,15 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation,useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 const SidebarAdmin = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     console.log("Logout clicked");
-    window.location.href = "/login";
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
   useEffect(() => {

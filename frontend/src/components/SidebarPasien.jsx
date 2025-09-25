@@ -1,14 +1,15 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation,useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 const PatientSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Placeholder untuk logika logout (misalnya, hapus token, redirect ke login)
     console.log("Logout clicked");
-    window.location.href = "/"; // Redirect ke login setelah logout
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
   // Tutup sidebar saat route berubah (navigasi)

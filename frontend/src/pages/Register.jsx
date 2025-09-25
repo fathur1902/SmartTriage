@@ -7,14 +7,31 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Placeholder untuk logika registrasi
     if (password !== confirmPassword) {
       alert("Kata sandi tidak cocok!");
       return;
     }
-    console.log("Register attempted with:", { name, username, password });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BASE_URL}/api/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, username, password, confirmPassword }),
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan saat registrasi");
+    }
   };
 
   return (

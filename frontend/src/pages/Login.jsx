@@ -1,15 +1,36 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Placeholder untuk logika login
-    console.log("Login attempted with:", { username, password });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BASE_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        localStorage.setItem("token", data.token);
+        // Redirect berdasarkan role
+        navigate(data.user.redirectTo);
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan saat login");
+    }
   };
 
   return (
