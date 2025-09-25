@@ -455,14 +455,14 @@ function Home() {
       >
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-800 mb-12">
-            Artikel Terbaru
+            Artikel Kesehatan
           </h2>
           <div className="relative">
             <div
               className="flex overflow-x-auto space-x-8 scrollbar-hide pb-4"
               style={{ scrollBehavior: "smooth" }}
             >
-              {dummyArticles.slice(0, 6).map((article, index) => (
+              {dummyArticles.map((article, index) => (
                 <ArticleCard
                   key={index}
                   title={article.title}
@@ -499,13 +499,13 @@ function Home() {
 
         {/* Popup untuk detail artikel */}
         {selectedArticle && (
-          <div className="fixed inset-0 bg-teal-600 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-4xl w-11/12 h-3/4 overflow-y-auto">
+          <div className="fixed inset-0 bg-teal-600 flex items-center justify-center z-50 scrollbar-hidden">
+            <div className="bg-white p-8 rounded-lg max-w-6xl w-11/12 h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setSelectedArticle(null)}
-                className="absolute top-4 right-4 text-white hover:text-gray-700 text-4xl"
+                className="absolute top-4 right-6 text-white hover:text-gray-700 text-4xl"
               >
-                ×
+                x
               </button>
               <img
                 src={selectedArticle.imageUrl}
@@ -520,9 +520,11 @@ function Home() {
                   const lines = selectedArticle.content.split("\n");
                   const sections = [];
                   let currentSection = null;
+                  let hasNumberedSections = false;
 
                   lines.forEach((line) => {
                     if (/^\d+\./.test(line.trim())) {
+                      hasNumberedSections = true;
                       if (currentSection) {
                         sections.push(currentSection);
                       }
@@ -533,22 +535,38 @@ function Home() {
                         content: [],
                       };
                     } else if (line.trim()) {
-                      currentSection?.content.push(line.trim());
+                      if (currentSection) {
+                        currentSection.content.push(line.trim());
+                      } else {
+                        // Jika tidak ada section bernomor, simpan sebagai paragraf biasa
+                        sections.push({ content: [line.trim()] });
+                      }
                     }
                   });
 
                   if (currentSection) sections.push(currentSection);
 
-                  return sections.map((sec, idx) => (
-                    <div key={idx} className="mb-4">
-                      <strong>
-                        {sec.number} {sec.title}
-                      </strong>
-                      <p className="ml-4 whitespace-pre-line">
+                  // Render berdasarkan apakah ada section bernomor
+                  if (hasNumberedSections) {
+                    return sections.map((sec, idx) => (
+                      <div key={idx} className="mb-4">
+                        {sec.number && (
+                          <strong>
+                            {sec.number} {sec.title}
+                          </strong>
+                        )}
+                        <p className="ml-4 whitespace-pre-line">
+                          {sec.content.join("\n")}
+                        </p>
+                      </div>
+                    ));
+                  } else {
+                    return sections.map((sec, idx) => (
+                      <p key={idx} className="whitespace-pre-line">
                         {sec.content.join("\n")}
                       </p>
-                    </div>
-                  ));
+                    ));
+                  }
                 })()}
               </div>
             </div>
@@ -591,16 +609,11 @@ function Home() {
             </ul>
           </div>
           <div>
-            <h3 className="font-semibold mb-4">Komunitas</h3>
+            <h3 className="font-semibold mb-4">Tentang Kesehatan</h3>
             <ul className="space-y-2 text-gray-300">
               <li>
-                <a href="#" className="hover:text-teal-400">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-teal-400">
-                  Podcast
+                <a href="#artikel" className="hover:text-teal-400">
+                  Artikel Kesehatan
                 </a>
               </li>
             </ul>
@@ -615,12 +628,6 @@ function Home() {
                     className="w-5 h-5 mr-2"
                   />{" "}
                   Instagram
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-teal-400">
-                  <FontAwesomeIcon icon={faTwitter} className="w-5 h-5 mr-2" />{" "}
-                  Twitter
                 </a>
               </li>
               <li>
