@@ -1,26 +1,112 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SidebarAdmin from "../../components/SidebarAdmin";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
+import SweetAlert from "../../components/SweetAlert"; // Impor SweetAlert
+import { useNavigate } from "react-router-dom";
 
 const KelolaAkunPasien = () => {
-  const patients = [
-    { id: 1, name: "John Doe", email: "john@example.com", status: "Aktif" },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", status: "Aktif" },
-    {
-      id: 3,
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      status: "Diblokir",
-    },
-  ];
+  const [patients, setPatients] = useState([]);
+  const navigate = useNavigate();
 
-  const handleResetPassword = (id) => {
-    console.log("Reset password untuk pasien ID:", id);
-  };
+  // Inisialisasi SweetAlert
+  const showSuccessAlert = SweetAlert({
+    title: "Sukses",
+    text: "Status akun pasien diperbarui!",
+    icon: "success",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
+
+  const showErrorAlert = SweetAlert({
+    title: "Error",
+    icon: "error",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
+
+  // Ambil daftar pasien dari API
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token tidak ditemukan");
+      navigate("/login");
+      return;
+    }
+
+    fetch(`${import.meta.env.VITE_BASE_URL}/api/admin/patients`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (data.data) setPatients(data.data);
+        else console.warn("Data pasien tidak ditemukan:", data);
+      })
+      .catch((error) => console.error("Error fetching patients:", error));
+  }, [navigate]);
 
   const handleBlock = (id) => {
-    console.log("Blokir pasien ID:", id);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token tidak ditemukan");
+      navigate("/login");
+      return;
+    }
+
+    SweetAlert({
+      title: "Konfirmasi",
+      text: "Apakah Anda yakin ingin memblokir akun pasien ini?",
+      icon: "warning",
+      showCancel: true,
+      confirmButtonText: "Ya",
+      cancelButtonText: "Batal",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch(
+          `${import.meta.env.VITE_BASE_URL}/api/admin/patients/${id}/toggle`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+          })
+          .then((data) => {
+            console.log("Toggle response:", data);
+            if (data.message) {
+              showSuccessAlert();
+              // Perbarui daftar pasien setelah toggle
+              setPatients((prevPatients) =>
+                prevPatients.map((patient) =>
+                  patient.id === id
+                    ? {
+                        ...patient,
+                        status:
+                          patient.status === "Aktif" ? "Diblokir" : "Aktif",
+                      }
+                    : patient
+                )
+              );
+            } else {
+              showErrorAlert({ text: "Gagal memperbarui status" });
+            }
+          })
+          .catch((error) => {
+            console.error("Error toggling status:", error);
+            showErrorAlert({
+              text: "Terjadi kesalahan saat memperbarui status",
+            });
+          });
+      }
+    });
   };
 
   return (
@@ -29,7 +115,7 @@ const KelolaAkunPasien = () => {
         <SidebarAdmin />
         <main className="flex-1 ml-7 p-20">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Kelola Akun Pasien
+            Daftar Akun Pasien
           </h2>
           <div className="space-y-4">
             {patients.map((patient) => (
@@ -37,7 +123,7 @@ const KelolaAkunPasien = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold">{patient.name}</h3>
-                    <p className="text-sm text-gray-600">{patient.email}</p>
+                    <p className="text-sm text-gray-600">{patient.username}</p>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
                         patient.status === "Aktif"
@@ -45,23 +131,18 @@ const KelolaAkunPasien = () => {
                           : "bg-red-100 text-red-600"
                       }`}
                     >
-                      {patient.status}
+                      {patient.status || "Aktif"}
                     </span>
                   </div>
                   <div className="space-x-2">
-                    <Button
-                      onClick={() => handleResetPassword(patient.id)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Reset Password
-                    </Button>
                     <Button
                       onClick={() => handleBlock(patient.id)}
                       variant="primary"
                       size="sm"
                     >
-                      Blokir Akun
+                      {patient.status === "Aktif"
+                        ? "Blokir Akun"
+                        : "Aktifkan Akun"}
                     </Button>
                   </div>
                 </div>

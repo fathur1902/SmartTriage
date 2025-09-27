@@ -1,11 +1,21 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import SweetAlert from "../components/SweetAlert";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  const showSuccessAlert = SweetAlert({
+    title: "Login Berhasil",
+    text: "Selamat datang kembali!",
+    icon: "success",
+    showCancel: false,
+    confirmButtonText: "OK",
+    onConfirm: () => {}, // Tidak perlu aksi tambahan di sini
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,10 +30,10 @@ const Login = () => {
       );
       const data = await response.json();
       if (response.ok) {
-        alert(data.message);
+        showSuccessAlert();
         localStorage.setItem("token", data.token);
         // Redirect berdasarkan role
-        navigate(data.user.redirectTo);
+        setTimeout(() => navigate(data.user.redirectTo), 1500);
       } else {
         alert(data.message);
       }

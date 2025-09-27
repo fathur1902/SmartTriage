@@ -1,15 +1,28 @@
-import { Link, useLocation,useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 const SidebarAdmin = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    console.log("Logout clicked");
-    localStorage.removeItem("token");
-    navigate("/");
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Konfirmasi Logout",
+      text: "Apakah Anda yakin ingin keluar?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Ya, Keluar",
+      cancelButtonText: "Batal",
+    });
+    if (result.isConfirmed) {
+      localStorage.removeItem("token");
+      navigate("/");
+      setIsOpen(false);
+    }
   };
 
   useEffect(() => {

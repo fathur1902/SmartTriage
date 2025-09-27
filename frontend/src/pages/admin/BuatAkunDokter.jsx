@@ -2,16 +2,73 @@ import { useState } from "react";
 import SidebarAdmin from "../../components/SidebarAdmin";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
+import SweetAlert from "../../components/SweetAlert";
+import { useNavigate } from "react-router-dom";
 
 const BuatAkunDokter = () => {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [specialty, setSpecialty] = useState("");
+  const [username, setUsername] = useState("");
+  const [spesialis, setSpesialis] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // Inisialisasi SweetAlert
+  const showSuccessAlert = SweetAlert({
+    title: "Sukses",
+    text: "Akun dokter berhasil dibuat!",
+    icon: "success",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
+
+  const showErrorAlert = SweetAlert({
+    title: "Error",
+    icon: "error",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Akun dokter dibuat:", { name, email, specialty, password });
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token tidak ditemukan");
+      navigate("/login");
+      return;
+    }
+
+    const doctorData = { name, username, spesialis, password };
+    console.log("Mengirim data:", doctorData);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BASE_URL}/api/admin/doctors`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(doctorData),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Respons dari server:", data);
+
+      if (response.ok) {
+        showSuccessAlert();
+        setName("");
+        setUsername("");
+        setSpesialis("");
+        setPassword("");
+      } else {
+        showErrorAlert({ text: data.message || "Gagal membuat akun dokter" });
+      }
+    } catch (error) {
+      console.error("Error creating doctor account:", error);
+      showErrorAlert({ text: "Terjadi kesalahan saat membuat akun dokter" });
+    }
   };
 
   return (
@@ -39,25 +96,25 @@ const BuatAkunDokter = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
+                  Username
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
-                  placeholder="Masukkan email dokter"
+                  placeholder="Masukkan username dokter"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Spesialisasi
+                  Spesialis
                 </label>
                 <input
                   type="text"
-                  value={specialty}
-                  onChange={(e) => setSpecialty(e.target.value)}
+                  value={spesialis}
+                  onChange={(e) => setSpesialis(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
                   placeholder="Masukkan spesialisasi (misalnya Umum)"
                   required

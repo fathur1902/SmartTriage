@@ -1,16 +1,33 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import SweetAlert from "../components/SweetAlert";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const navigate = useNavigate();
+
+  const showRegisterSuccessAlert = SweetAlert({
+    title: "Registrasi Berhasil",
+    text: "Akun Anda telah dibuat. Silakan login!",
+    icon: "success",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
+  const showErrorAlert = SweetAlert({
+    title: "Error",
+    text: "",
+    icon: "error",
+    showCancel: false,
+    confirmButtonText: "OK",
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Kata sandi tidak cocok!");
+      showErrorAlert({ text: "Kata sandi tidak cocok!" });
       return;
     }
     try {
@@ -24,13 +41,14 @@ const Register = () => {
       );
       const data = await response.json();
       if (response.ok) {
-        alert(data.message);
+        showRegisterSuccessAlert();
+        setTimeout(() => navigate("/login"), 1000);
       } else {
-        alert(data.message);
+        showErrorAlert({ text: data.message });
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Terjadi kesalahan saat registrasi");
+      showErrorAlert({ text: "Terjadi kesalahan saat registrasi" });
     }
   };
 
