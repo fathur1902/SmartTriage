@@ -30,7 +30,7 @@ const BuatAkunDokter = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       console.error("Token tidak ditemukan");
       navigate("/login");

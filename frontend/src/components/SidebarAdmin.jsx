@@ -1,16 +1,47 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import {
+  FiHome,
+  FiUserPlus,
+  FiUsers,
+  FiActivity,
+  FiUser,
+  FiLogOut,
+  FiMenu,
+  FiX,
+} from "react-icons/fi";
 
 const SidebarAdmin = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState("Admin");
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return;
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BASE_URL}/api/admin/profile`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+        if (res.ok && data.data) setUserName(data.data.name);
+      } catch (error) {
+        console.error("Gagal load profil:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = async () => {
     const result = await Swal.fire({
       title: "Konfirmasi Logout",
-      text: "Apakah Anda yakin ingin keluar?",
+      text: "Yakin ingin keluar?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -18,10 +49,10 @@ const SidebarAdmin = () => {
       confirmButtonText: "Ya, Keluar",
       cancelButtonText: "Batal",
     });
+
     if (result.isConfirmed) {
-      localStorage.removeItem("token");
+      localStorage.removeItem("adminToken");
       navigate("/");
-      setIsOpen(false);
     }
   };
 
@@ -32,105 +63,80 @@ const SidebarAdmin = () => {
   return (
     <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-teal-600 text-white rounded-lg focus:outline-none"
+        onClick={() => setIsOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-teal-600 text-white rounded-full shadow-lg hover:bg-teal-700 transition-all"
       >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16m-7 6h7"
-          />
-        </svg>
+        <FiMenu className="w-6 h-6" />
       </button>
 
       <aside
-        className={`w-64 bg-gray-100 h-screen p-4 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 md:relative md:z-auto`}
+        } md:translate-x-0 md:static md:shadow-none`}
       >
-        <button
-          onClick={() => setIsOpen(false)}
-          className="md:hidden absolute top-4 right-4 text-teal-600 focus:outline-none"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center justify-between p-4 border-b md:hidden">
+          <span className="font-bold text-gray-700">Menu</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-500 hover:text-red-500"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-        <nav className="space-y-6 pt-12 md:pt-4">
-          <h2 className="text-xl font-bold text-teal-600 mb-4">Menu Admin</h2>
+            <FiX className="w-6 h-6" />
+          </button>
+        </div>
+
+        <nav className="p-4 space-y-4 overflow-y-auto h-full pb-20">
+          <div className="mb-6 px-2">
+            <h2 className="text-2xl font-bold text-teal-600">Menu Admin</h2>
+            <p className="text-l text-gray-500 mt-1 font-bold">
+              Halo, {userName}
+            </p>
+          </div>
+
           <Link
             to="/admin/dashboard"
-            className="flex items-center space-x-3 p-2 rounded hover:bg-teal-100 text-teal-600"
-            onClick={() => setIsOpen(false)}
+            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-teal-50 text-teal-700 transition-colors"
           >
-            <span className="text-xl">📊</span>
-            <span>Dashboard</span>
+            <FiHome className="text-xl" /> <span>Dashboard</span>
           </Link>
           <Link
             to="/admin/buat-akun-dokter"
-            className="flex items-center space-x-3 p-2 rounded hover:bg-teal-100 text-teal-600"
-            onClick={() => setIsOpen(false)}
+            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-teal-50 text-teal-700 transition-colors"
           >
-            <span className="text-xl">👨‍⚕️</span>
-            <span>Buat Akun Dokter</span>
+            <FiUserPlus className="text-xl" /> <span>Buat Akun Dokter</span>
           </Link>
           <Link
             to="/admin/kelola-pasien"
-            className="flex items-center space-x-3 p-2 rounded hover:bg-teal-100 text-teal-600"
-            onClick={() => setIsOpen(false)}
+            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-teal-50 text-teal-700 transition-colors"
           >
-            <span className="text-xl">👥</span>
-            <span>Kelola Akun Pasien</span>
+            <FiUsers className="text-xl" /> <span>Kelola Akun Pasien</span>
           </Link>
           <Link
             to="/admin/kelola-dokter"
-            className="flex items-center space-x-3 p-2 rounded hover:bg-teal-100 text-teal-600"
-            onClick={() => setIsOpen(false)}
+            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-teal-50 text-teal-700 transition-colors"
           >
-            <span className="text-xl">👨‍⚕️</span>
-            <span>Kelola Akun Dokter</span>
+            <FiActivity className="text-xl" /> <span>Kelola Akun Dokter</span>
           </Link>
           <Link
             to="/admin/profile"
-            className="flex items-center space-x-3 p-2 rounded hover:bg-teal-100 text-teal-600"
-            onClick={() => setIsOpen(false)}
+            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-teal-50 text-teal-700 transition-colors"
           >
-            <span className="text-xl">👤</span>
-            <span>Profil</span>
+            <FiUser className="text-xl" /> <span>Profil</span>
           </Link>
-          <button
-            onClick={() => {
-              handleLogout();
-              setIsOpen(false);
-            }}
-            className="w-full flex items-center space-x-3 p-2 rounded hover:bg-red-100 text-red-600 mt-4"
-          >
-            <span className="text-xl">🚪</span>
-            <span>Keluar</span>
-          </button>
+
+          <div className="pt-4 border-t mt-4">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+            >
+              <FiLogOut className="text-xl" /> <span>Keluar</span>
+            </button>
+          </div>
         </nav>
       </aside>
 
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          className="fixed inset-0 z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         ></div>
       )}

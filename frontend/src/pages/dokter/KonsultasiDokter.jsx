@@ -1,56 +1,103 @@
-import { useState } from "react";
+// src/pages/dokter/KonsultasiDokter.jsx
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import SidebarDokter from "../../components/SidebarDokter";
-import ChatBubble from "../../components/ChatBubble";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
+import ChatBubble from "../../components/ChatBubble";
 
 const KonsultasiDokter = () => {
-  const [messages, setMessages] = useState([
-    {
-      text: "Halo, saya John Doe. Saya mengalami demam dan batuk.",
-      isUser: true,
-    },
-  ]);
+  const [searchParams] = useSearchParams();
+  const consultationId = searchParams.get("consultationId");
+  const [patientName, setPatientName] = useState("");
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setMessages([...messages, { text: input, isUser: false }]);
-      setInput("");
-    }
+  useEffect(() => {
+    if (!consultationId) return;
+    const fetchConsultation = async () => {
+      const token = localStorage.getItem("dokterToken");
+      try {
+        const res = await fetch(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/dokter/konsultasi?consultationId=${consultationId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          setPatientName(data.data.patientName);
+          setMessages([{ text: data.data.initialMessage, isUser: true }]);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConsultation();
+  }, [consultationId]);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const token = localStorage.getItem("dokterToken");
+    await fetch(`${import.meta.env.VITE_BASE_URL}/api/dokter/konsultasi`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ consultationId, message: input }),
+    });
+    setMessages((prev) => [...prev, { text: input, isUser: false }]);
+    setInput("");
   };
 
-  const handleSaveDiagnosis = () => {
-    console.log("Diagnosis saved:", diagnosis);
+  const saveDiagnosis = async () => {
+    const token = localStorage.getItem("dokterToken");
+    await fetch(`${import.meta.env.VITE_BASE_URL}/api/dokter/konsultasi`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ consultationId, diagnosis }),
+    });
+    alert("Diagnosis tersimpan!");
   };
+
+  if (loading)
+    return <div className="p-8 text-center">Memuat konsultasi...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarDokter />
-        <main className="flex-1  ml-7 p-20">
+        <main className="flex-1 ml-7 p-20">
           <Card>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Konsultasi dengan John Doe
+              Konsultasi dengan {patientName}
             </h2>
             <div className="h-96 overflow-y-auto border rounded-lg p-4 mb-4 bg-white">
-              {messages.map((msg, index) => (
-                <ChatBubble
-                  key={index}
-                  message={msg.text}
-                  isUser={msg.isUser}
-                />
+              {messages.map((m, i) => (
+                <ChatBubble key={i} message={m.text} isUser={m.isUser} />
               ))}
             </div>
-            <form onSubmit={handleSendMessage} className="flex space-x-4 mb-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendMessage();
+              }}
+              className="flex space-x-4 mb-4"
+            >
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Balas pasien..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-teal-500"
+                className="flex-1 px-4 py-2 border rounded-lg"
               />
               <Button type="submit" variant="primary">
                 Kirim
@@ -62,16 +109,15 @@ const KonsultasiDokter = () => {
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
                 placeholder="Masukkan diagnosis dan saran..."
-                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
+                className="w-full h-24 px-3 py-2 border rounded-md"
               />
-              <Button onClick={handleSaveDiagnosis} variant="primary">
+              <Button onClick={saveDiagnosis} variant="primary">
                 Simpan Diagnosis
               </Button>
             </div>
           </Card>
         </main>
       </div>
-      i
     </div>
   );
 };

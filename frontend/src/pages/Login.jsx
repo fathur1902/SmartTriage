@@ -31,8 +31,13 @@ const Login = () => {
       const data = await response.json();
       if (response.ok) {
         showSuccessAlert();
-        localStorage.setItem("token", data.token);
-        // Redirect berdasarkan role
+        // Simpan token berdasarkan role
+        if (data.role === "admin")
+          localStorage.setItem("adminToken", data.token);
+        else if (data.role === "pasien")
+          localStorage.setItem("pasienToken", data.token);
+        else if (data.role === "dokter")
+          localStorage.setItem("dokterToken", data.token);
         setTimeout(() => navigate(data.user.redirectTo), 1500);
       } else {
         alert(data.message);
@@ -93,22 +98,7 @@ const Login = () => {
               />
             </div>
           </div>
-
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-900"
-              >
-                Ingat Saya
-              </label>
-            </div>
             <div className="text-sm">
               <a
                 href="#"

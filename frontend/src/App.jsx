@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -23,28 +28,125 @@ import ProfilAdmin from "./pages/admin/ProfilAdmin";
 import "./App.css";
 
 function App() {
+  // Fungsi untuk mendapatkan token berdasarkan role
+  const getToken = (role) => {
+    const tokenKey = `${role}Token`;
+    return localStorage.getItem(tokenKey);
+  };
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<DashboardPasien />} />
-        <Route path="/chatbot" element={<ChatbotTriage />} />
-        <Route path="/doctors" element={<DaftarDokter />} />
-        <Route path="/consultation" element={<Konsultasi />} />
-        <Route path="/history" element={<RiwayatKonsultasi />} />
-        <Route path="/profile" element={<ProfilePasien />} />
-        <Route path="/dokter/dashboard" element={<DashboardDokter />} />
-        <Route path="/dokter/pasien-masuk" element={<DaftarPasienMasuk />} />
-        <Route path="/dokter/konsultasi" element={<KonsultasiDokter />} />
-        <Route path="/dokter/riwayat" element={<RiwayatPasien />} />
-        <Route path="/dokter/profile" element={<ProfileDokter />} />
-        <Route path="/admin/dashboard" element={<DashboardAdmin />} />
-        <Route path="/admin/buat-akun-dokter" element={<BuatAkunDokter />} />
-        <Route path="/admin/kelola-pasien" element={<KelolaAkunPasien />} />
-        <Route path="/admin/kelola-dokter" element={<KelolaAkunDokter />} />
-        <Route path="/admin/profile" element={<ProfilAdmin />} />
+        {/* Rute untuk Pasien */}
+        <Route
+          path="/dashboard"
+          element={
+            getToken("pasien") ? <DashboardPasien /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/chatbot"
+          element={
+            getToken("pasien") ? <ChatbotTriage /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/doctors"
+          element={
+            getToken("pasien") ? <DaftarDokter /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/consultation"
+          element={
+            getToken("pasien") ? <Konsultasi /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            getToken("pasien") ? (
+              <RiwayatKonsultasi />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            getToken("pasien") ? <ProfilePasien /> : <Navigate to="/login" />
+          }
+        />
+        {/* Rute untuk Dokter */}
+        <Route
+          path="/dokter/dashboard"
+          element={
+            getToken("dokter") ? <DashboardDokter /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/dokter/pasien-masuk"
+          element={
+            getToken("dokter") ? (
+              <DaftarPasienMasuk />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/dokter/konsultasi"
+          element={
+            getToken("dokter") ? <KonsultasiDokter /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/dokter/riwayat"
+          element={
+            getToken("dokter") ? <RiwayatPasien /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/dokter/profile"
+          element={
+            getToken("dokter") ? <ProfileDokter /> : <Navigate to="/login" />
+          }
+        />
+        {/* Rute untuk Admin */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            getToken("admin") ? <DashboardAdmin /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/admin/buat-akun-dokter"
+          element={
+            getToken("admin") ? <BuatAkunDokter /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/admin/kelola-pasien"
+          element={
+            getToken("admin") ? <KelolaAkunPasien /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/admin/kelola-dokter"
+          element={
+            getToken("admin") ? <KelolaAkunDokter /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/admin/profile"
+          element={
+            getToken("admin") ? <ProfilAdmin /> : <Navigate to="/login" />
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );

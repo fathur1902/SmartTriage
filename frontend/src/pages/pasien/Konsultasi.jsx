@@ -1,31 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SidebarPasien from "../../components/SidebarPasien";
 import ChatBubble from "../../components/ChatBubble";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
+import { useNavigate } from "react-router-dom";
 
 const Konsultasi = () => {
-  const [messages, setMessages] = useState([
-    {
-      text: "Halo, saya Dr. Anna Doe. Bagaimana saya bisa membantu?",
-      isUser: false,
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Ambil riwayat konsultasi saat komponen dimuat
+    fetch(`${import.meta.env.VITE_BASE_URL}/api/pasien/history`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) {
+          const recent = data.data
+            .filter((item) => item.type === "Text")
+            .slice(-2); // Ambil 2 terakhir
+          setMessages(
+            recent.map((item) => ({
+              text: item.summary,
+              isUser: item.doctor === null, // Asumsi jika doctor null, pesan dari pasien
+            }))
+          );
+        }
+      })
+      .catch((error) => console.error("Error fetching history:", error));
+  }, []);
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (input.trim()) {
-      setMessages([...messages, { text: input, isUser: true }]);
-      // Placeholder untuk respons dokter
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: "Terima kasih atas penjelasannya. Saya sarankan istirahat dan minum obat.",
-            isUser: false,
-          },
-        ]);
-      }, 1000);
+      const newMessage = { text: input, isUser: true };
+      setMessages([...messages, newMessage]);
+      fetch(`${import.meta.env.VITE_BASE_URL}/api/pasien/consultation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
+        },
+        body: JSON.stringify({ message: input }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.data) {
+            setTimeout(() => {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  text: "Terima kasih atas penjelasannya. Saya sarankan istirahat dan minum obat.",
+                  isUser: false,
+                },
+              ]);
+            }, 1000);
+          }
+        })
+        .catch((error) => console.error("Error sending message:", error));
       setInput("");
     }
   };
@@ -34,7 +70,7 @@ const Konsultasi = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarPasien />
-        <main className="flex-1  ml-7 p-20">
+        <main className="flex-1 ml-7 p-20">
           <Card>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
               Konsultasi dengan Dr. Anna Doe

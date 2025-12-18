@@ -1,11 +1,12 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { authenticateToken } = require("../middleware/authenticate");
 require("dotenv").config();
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
-// Register (khusus untuk pasien)
+// Register (khusus untuk pasien) - TIDAK BERUBAH
 exports.register = async (req, res) => {
   const { name, username, password, confirmPassword } = req.body;
 
@@ -18,7 +19,6 @@ exports.register = async (req, res) => {
   }
 
   try {
-    // Cek duplikat username di tabel patients
     const [rows] = await pool.query(
       "SELECT * FROM patients WHERE username = ?",
       [username]
@@ -28,10 +28,9 @@ exports.register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Simpan ke tabel patients dengan role_id = 3 (pasien)
     await pool.query(
-      "INSERT INTO patients (name, username, password, role_id) VALUES (?, ?, ?, ?)",
-      [name, username, hashedPassword, 3] // 3 adalah id untuk role 'pasien'
+      "INSERT INTO patients (name, username, password, role_id, status) VALUES (?, ?, ?, ?, 'Aktif')",
+      [name, username, hashedPassword, 3]
     );
 
     res.status(201).json({ message: "Registrasi berhasil" });
@@ -52,7 +51,6 @@ exports.login = async (req, res) => {
   }
 
   try {
-    // Gabungkan query dari semua tabel dengan role
     const [rows] = await pool.query(
       `
         SELECT u.id, u.name, u.username, u.password, r.name AS role_name
@@ -83,6 +81,7 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "Kata sandi salah" });
     }
+
     // Periksa status untuk pasien
     if (user.role_name === "pasien") {
       const [patientStatus] = await pool.query(
@@ -90,21 +89,27 @@ exports.login = async (req, res) => {
         [username]
       );
       if (patientStatus[0].status === "Diblokir") {
-        return res.status(403).json({ message: "Akun Anda telah diblokir" });
+        return res.status(403).json({
+          message: "Akun Anda telah diblokir karena melakukan pelanggaran",
+        });
       }
     }
 
     // Periksa status untuk dokter
     if (user.role_name === "dokter") {
       const [doctorStatus] = await pool.query(
-        "SELECT status FROM doctors WHERE username = ?",
+        "SELECT account_status FROM doctors WHERE username = ?",
         [username]
       );
-      if (doctorStatus[0].status === "Nonaktif") {
+      // Cek apakah akun dinonaktifkan Admin
+      if (doctorStatus[0].account_status === "Nonaktif") {
         return res
           .status(403)
           .json({ message: "Akun Anda telah dinonaktifkan" });
       }
+      await pool.query("UPDATE doctors SET status = 'online' WHERE id = ?", [
+        user.id,
+      ]);
     }
 
     const token = jwt.sign(
@@ -113,7 +118,6 @@ exports.login = async (req, res) => {
       { expiresIn: "5h" }
     );
 
-    // Tentukan redirect berdasarkan role
     let redirectTo = "/";
     switch (user.role_name) {
       case "admin":
@@ -130,6 +134,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Login berhasil",
       token,
+      role: user.role_name,
       user: {
         id: user.id,
         name: user.name,
@@ -143,3 +148,25 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 };
+
+// Logout Umum (Hanya response JSON, frontend hapus token)
+exports.logout = (req, res) => {
+  res.status(200).json({ message: "Logout berhasil" });
+};
+
+exports.logoutDokter = [
+  authenticateToken(["dokter"]),
+  async (req, res) => {
+    try {
+      const doctorId = req.user.id;
+      await pool.query("UPDATE doctors SET status = 'offline' WHERE id = ?", [
+        doctorId,
+      ]);
+
+      res.status(200).json({ message: "Berhasil logout dan status offline" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ message: "Gagal logout" });
+    }
+  },
+];

@@ -39,7 +39,7 @@ const ProfilAdmin = () => {
 
   // Ambil data profile admin saat halaman dibuka
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     fetch(`${import.meta.env.VITE_BASE_URL}/api/admin/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })

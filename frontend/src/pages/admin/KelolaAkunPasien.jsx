@@ -2,32 +2,16 @@ import { useState, useEffect } from "react";
 import SidebarAdmin from "../../components/SidebarAdmin";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
-import SweetAlert from "../../components/SweetAlert"; // Impor SweetAlert
+import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 const KelolaAkunPasien = () => {
   const [patients, setPatients] = useState([]);
   const navigate = useNavigate();
 
-  // Inisialisasi SweetAlert
-  const showSuccessAlert = SweetAlert({
-    title: "Sukses",
-    text: "Status akun pasien diperbarui!",
-    icon: "success",
-    showCancel: false,
-    confirmButtonText: "OK",
-  });
-
-  const showErrorAlert = SweetAlert({
-    title: "Error",
-    icon: "error",
-    showCancel: false,
-    confirmButtonText: "OK",
-  });
-
   // Ambil daftar pasien dari API
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       console.error("Token tidak ditemukan");
       navigate("/login");
@@ -49,21 +33,23 @@ const KelolaAkunPasien = () => {
   }, [navigate]);
 
   const handleBlock = (id) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       console.error("Token tidak ditemukan");
       navigate("/login");
       return;
     }
-
-    SweetAlert({
+    Swal.fire({
       title: "Konfirmasi",
       text: "Apakah Anda yakin ingin memblokir akun pasien ini?",
       icon: "warning",
-      showCancel: true,
+      showCancelButton: true, 
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Ya",
       cancelButtonText: "Batal",
     }).then((result) => {
+      // Cek jika tombol 'Ya' diklik
       if (result.isConfirmed) {
         fetch(
           `${import.meta.env.VITE_BASE_URL}/api/admin/patients/${id}/toggle`,
@@ -82,8 +68,14 @@ const KelolaAkunPasien = () => {
           .then((data) => {
             console.log("Toggle response:", data);
             if (data.message) {
-              showSuccessAlert();
-              // Perbarui daftar pasien setelah toggle
+              // Tampilkan Alert Sukses
+              Swal.fire({
+                title: "Sukses",
+                text: "Status akun pasien berhasil diperbarui!",
+                icon: "success",
+              });
+
+              // Update State Lokal
               setPatients((prevPatients) =>
                 prevPatients.map((patient) =>
                   patient.id === id
@@ -96,14 +88,16 @@ const KelolaAkunPasien = () => {
                 )
               );
             } else {
-              showErrorAlert({ text: "Gagal memperbarui status" });
+              Swal.fire("Error", "Gagal memperbarui status", "error");
             }
           })
           .catch((error) => {
             console.error("Error toggling status:", error);
-            showErrorAlert({
-              text: "Terjadi kesalahan saat memperbarui status",
-            });
+            Swal.fire(
+              "Error",
+              "Terjadi kesalahan saat memperbarui status",
+              "error"
+            );
           });
       }
     });

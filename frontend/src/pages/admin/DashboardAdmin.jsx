@@ -1,6 +1,8 @@
+// src/pages/admin/DashboardAdmin.jsx
 import { useState, useEffect } from "react";
 import SidebarAdmin from "../../components/SidebarAdmin";
 import Card from "../../components/Card";
+import { FiUsers, FiActivity, FiMessageSquare } from "react-icons/fi"; // Install react-icons jika belum
 
 const DashboardAdmin = () => {
   const [stats, setStats] = useState({
@@ -8,11 +10,12 @@ const DashboardAdmin = () => {
     doctors: 0,
     consultations: 0,
   });
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  // Fungsi fetch dipisah agar bisa dipanggil ulang
+  const fetchStats = () => {
+    const token = localStorage.getItem("adminToken");
     if (!token) {
-      console.error("Token tidak ditemukan");
       window.location.href = "/login";
       return;
     }
@@ -31,48 +34,74 @@ const DashboardAdmin = () => {
             doctors: data.data.activeDoctors,
             consultations: data.data.monthlyConsultations,
           });
-        } else {
-          console.warn("Data dashboard tidak ditemukan:", data);
         }
       })
-      .catch((error) =>
-        console.error("Error fetching dashboard stats:", error)
-      );
-  }, []); // Kosongkan dependency array untuk fetch sekali saat mount
+      .catch((error) => console.error("Error fetching stats:", error))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchStats(); // Load awal
+
+    // Auto-refresh setiap 5 detik (Real-time monitoring)
+    const intervalId = setInterval(() => {
+      fetchStats();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  if (loading)
+    return <div className="p-8 text-center">Memuat data admin...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <SidebarAdmin />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Dashboard Admin
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[
-              { label: "Jumlah Pasien", value: stats.patients, icon: "👥" },
-              { label: "Jumlah Dokter", value: stats.doctors, icon: "👨‍⚕️" },
-              {
-                label: "Konsultasi Bulan Ini",
-                value: stats.consultations,
-                icon: "💬",
-              },
-            ].map((stat, index) => (
-              <Card key={index}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-bold text-teal-600">
-                      {stat.value}
-                    </p>
-                    <p className="text-gray-600">{stat.label}</p>
-                  </div>
-                  <span className="text-3xl">{stat.icon}</span>
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      <SidebarAdmin />
+      <main className="flex-1 ml-7 p-20">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          Dashboard Admin
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {[
+            {
+              label: "Total Pasien Aktif",
+              value: stats.patients,
+              icon: <FiUsers size={24} />,
+              color: "text-blue-600",
+              bg: "bg-blue-100",
+            },
+            {
+              label: "Total Dokter Terdaftar",
+              value: stats.doctors,
+              icon: <FiActivity size={24} />,
+              color: "text-teal-600",
+              bg: "bg-teal-100",
+            },
+            {
+              label: "Konsultasi Bulan Ini",
+              value: stats.consultations,
+              icon: <FiMessageSquare size={24} />,
+              color: "text-purple-600",
+              bg: "bg-purple-100",
+            },
+          ].map((stat, index) => (
+            <Card key={index}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-4xl font-bold ${stat.color}`}>
+                    {stat.value}
+                  </p>
+                  <p className="text-gray-600 text-sm mt-1">{stat.label}</p>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </main>
-      </div>
+                <div className={`p-3 rounded-full ${stat.bg} ${stat.color}`}>
+                  {stat.icon}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </main>
     </div>
   );
 };

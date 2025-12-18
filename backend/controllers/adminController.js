@@ -1,25 +1,10 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
-
-const SECRET_KEY = process.env.JWT_SECRET;
-
-// Middleware untuk memverifikasi token
-const authenticateToken = (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
-
-  jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.status(403).json({ message: "Token tidak valid" });
-    req.user = user;
-    next();
-  });
-};
+const { authenticateToken } = require("../middleware/authenticate");
 
 // Mendapatkan profil admin
 exports.getProfile = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     try {
       const [rows] = await pool.query(
@@ -39,7 +24,7 @@ exports.getProfile = [
 
 // Memperbarui profil admin
 exports.updateProfile = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     const { name, username, password } = req.body;
     const adminId = req.user.id;
@@ -94,7 +79,7 @@ exports.updateProfile = [
 
 // Membuat akun dokter
 exports.createDoctor = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     const { name, username, spesialis, password } = req.body;
 
@@ -130,11 +115,11 @@ exports.createDoctor = [
 
 //Mendapatkan daftar dokter
 exports.getDoctors = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     try {
       const [rows] = await pool.query(
-        "SELECT id, name, username, spesialis, status FROM doctors"
+        "SELECT id, name, username, spesialis, status, account_status FROM doctors"
       );
       res.status(200).json({ data: rows });
     } catch (error) {
@@ -146,29 +131,38 @@ exports.getDoctors = [
 
 //Atur status dokter
 exports.toggleDoctorStatus = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
-    const { id } = req.params; // ID dokter dari URL
+    const { id } = req.params; 
     try {
       const [doctor] = await pool.query(
-        "SELECT status FROM doctors WHERE id = ?",
+        "SELECT account_status FROM doctors WHERE id = ?",
         [id]
       );
+
       if (doctor.length === 0) {
         return res.status(404).json({ message: "Dokter tidak ditemukan" });
       }
-
-      const newStatus = doctor[0].status === "Aktif" ? "Nonaktif" : "Aktif";
-      await pool.query("UPDATE doctors SET status = ? WHERE id = ?", [
+      const currentStatus = doctor[0].account_status;
+      const newStatus = currentStatus === "Aktif" ? "Nonaktif" : "Aktif";
+      await pool.query("UPDATE doctors SET account_status = ? WHERE id = ?", [
         newStatus,
         id,
       ]);
+      if (newStatus === "Nonaktif") {
+        await pool.query("UPDATE doctors SET status = 'offline' WHERE id = ?", [
+          id,
+        ]);
+      }
 
-      res
-        .status(200)
-        .json({ message: `Akun dokter ${newStatus.toLowerCase()}kan` });
+      res.status(200).json({
+        message: `Akun dokter berhasil di${
+          newStatus === "Aktif" ? "aktifkan" : "nonaktifkan"
+        }`,
+        newStatus: newStatus, 
+      });
     } catch (error) {
-      console.error(error);
+      console.error("Error toggleDoctorStatus:", error);
       res.status(500).json({ message: "Terjadi kesalahan server" });
     }
   },
@@ -176,7 +170,7 @@ exports.toggleDoctorStatus = [
 
 // Mendapatkan daftar pasien
 exports.getPatients = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     try {
       const [rows] = await pool.query(
@@ -192,7 +186,7 @@ exports.getPatients = [
 
 // Mengaktifkan/menonaktifkan akun pasien
 exports.togglePatientStatus = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -222,28 +216,32 @@ exports.togglePatientStatus = [
 
 // Mendapatkan statistik dashboard
 exports.getDashboardStats = [
-  authenticateToken,
+  authenticateToken(["admin"]),
   async (req, res) => {
     try {
-      const [activePatients] = await pool.query(
+      const [patients] = await pool.query(
         "SELECT COUNT(*) as count FROM patients WHERE status = 'Aktif'"
       );
-      const [activeDoctors] = await pool.query(
-        "SELECT COUNT(*) as count FROM doctors WHERE status = 'Aktif'"
+      const [doctors] = await pool.query(
+        "SELECT COUNT(*) as count FROM doctors WHERE status != 'Nonaktif'"
       );
-      // Sementara gunakan 0 untuk konsultasi karena belum ada tabel consultations
-      const monthlyConsultations = 0;
+      const [consultations] = await pool.query(
+        `SELECT COUNT(*) as count FROM consultations 
+         WHERE MONTH(consultation_date) = MONTH(CURRENT_DATE()) 
+         AND YEAR(consultation_date) = YEAR(CURRENT_DATE())`
+      );
 
       res.status(200).json({
+        success: true,
         data: {
-          activePatients: activePatients[0].count,
-          activeDoctors: activeDoctors[0].count,
-          monthlyConsultations: monthlyConsultations,
+          activePatients: patients[0].count,
+          activeDoctors: doctors[0].count,
+          monthlyConsultations: consultations[0].count,
         },
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Terjadi kesalahan server" });
+      console.error("Error admin dashboard:", error);
+      res.status(500).json({ message: "Gagal memuat data dashboard." });
     }
   },
 ];
