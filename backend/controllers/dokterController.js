@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { authenticateToken } = require("../middleware/authenticate");
+const bcrypt = require("bcryptjs");
 
 // === DASHBOARD STATS ===
 exports.getDashboardStats = [
@@ -122,17 +123,20 @@ exports.getPatientHistory = [
 
       const [rows] = await pool.query(
         `SELECT 
-           p.id AS patient_id,
-           p.name AS patient_name,
-           c.id AS consultation_id,
-           DATE_FORMAT(c.consultation_date, '%Y-%m-%d %H:%i') AS date,
-           COALESCE(c.summary, '') AS summary,
-           c.type,
-           c.priority
-         FROM consultations c
-         JOIN patients p ON c.patient_id = p.id
-         WHERE c.doctor_id = ?
-         ORDER BY p.name, c.consultation_date DESC`,
+            p.id AS patient_id,
+            p.name AS patient_name,
+            c.id AS consultation_id,
+            DATE_FORMAT(c.consultation_date, '%Y-%m-%d %H:%i') AS date,
+            COALESCE(c.summary, '') AS summary,
+            c.type,
+            c.status,       
+            t.symptom,      
+            t.priority     
+          FROM consultations c
+          JOIN patients p ON c.patient_id = p.id
+          LEFT JOIN triage_result t ON c.triage_id = t.id -- Hubungkan ke tabel triage
+          WHERE c.doctor_id = ?
+          ORDER BY p.name, c.consultation_date DESC`,
         [doctorId]
       );
 
@@ -148,6 +152,8 @@ exports.getPatientHistory = [
         acc[key].consultations.push({
           id: row.consultation_id,
           date: row.date,
+          status: row.status,
+          symptom: row.symptom,
           summary:
             row.type === "Chatbot"
               ? `Triase Otomatis: ${row.summary} (Prioritas: ${
@@ -182,34 +188,93 @@ exports.startConsultation = [
   authenticateToken(["dokter"]),
   async (req, res) => {
     try {
-      const { consultationId } = req.query;
-      const doctorId = req.user?.id;
-      if (!doctorId || !consultationId) {
-        return res.status(400).json({ message: "Data tidak lengkap" });
-      }
+      const { triageId, patientId } = req.body;
+      const doctorId = req.user.id;
 
-      const [consultation] = await pool.query(
-        `SELECT c.id, p.name, COALESCE(c.summary, '') as initialMessage
-         FROM consultations c
-         JOIN patients p ON c.patient_id = p.id
-         WHERE c.id = ? AND c.doctor_id = ?`,
-        [consultationId, doctorId]
+      const [triageRows] = await pool.query(
+        "SELECT symptom, severity, duration, description FROM triage_result WHERE id = ?",
+        [triageId]
       );
 
-      if (consultation.length === 0) {
-        return res.status(404).json({ message: "Konsultasi tidak ditemukan" });
+      const [result] = await pool.query(
+        "INSERT INTO consultations (patient_id, doctor_id, triage_id, consultation_date, status, type) VALUES (?, ?, ?, NOW(), 'active', 'Manual')",
+        [patientId, doctorId, triageId]
+      );
+
+      const consultationId = result.insertId;
+      await pool.query(
+        "UPDATE triage_result SET status = 'completed' WHERE id = ?",
+        [triageId]
+      );
+      if (triageRows.length > 0) {
+        const t = triageRows[0];
+
+        const summaryMessage = `HASIL TRIASE OLEH CHATBOT: Pasien mengeluhkan ${
+          t.symptom
+        } dengan tingkat keparahan ${
+          t.severity
+        } yang telah berlangsung selama ${
+          t.duration
+        }. Berdasarkan analisis dari chatbot, ${
+          t.description || "tidak ada catatan khusus."
+        }`;
+        await pool.query(
+          "INSERT INTO chat_messages (consultation_id, sender_role, message) VALUES (?, 'system', ?)",
+          [consultationId, summaryMessage]
+        );
       }
 
       return res.status(200).json({
         message: "Konsultasi dimulai",
-        data: {
-          patientName: consultation[0].name,
-          initialMessage: consultation[0].initialMessage,
-        },
+        consultationId: consultationId,
       });
     } catch (error) {
-      console.error("Error in startConsultation:", error);
+      console.error("Error startConsultation:", error);
       return res.status(500).json({ message: "Terjadi kesalahan server" });
+    }
+  },
+];
+
+// AKHIRI KONSULTASI
+exports.endConsultation = [
+  authenticateToken(["dokter"]),
+  async (req, res) => {
+    try {
+      const { consultationId, summary } = req.body;
+      const doctorId = req.user.id;
+
+      await pool.query(
+        "UPDATE consultations SET status = 'done', summary=? WHERE id = ? AND doctor_id = ?",
+        [summary || null, consultationId, doctorId]
+      );
+      if (summary) {
+        await pool.query(
+          "INSERT INTO chat_messages (consultation_id, sender_role, message) VALUES (?, 'system', ?)",
+          [consultationId, `Catatan Oleh Dokter: ${summary}`]
+        );
+      }
+
+      return res.status(200).json({ message: "Konsultasi selesai." });
+    } catch (error) {
+      console.error("Error endConsultation:", error);
+      return res.status(500).json({ message: "Terjadi kesalahan server" });
+    }
+  },
+];
+// AMBIL RIWAYAT CHAT (Untuk Dokter)
+exports.getConsultationChat = [
+  authenticateToken(["dokter"]),
+  async (req, res) => {
+    try {
+      const { consultationId } = req.params;
+      const [rows] = await pool.query(
+        "SELECT * FROM chat_messages WHERE consultation_id = ? ORDER BY created_at ASC",
+        [consultationId]
+      );
+      res.status(200).json({ data: rows });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error server" });
     }
   },
 ];
@@ -287,7 +352,7 @@ exports.updateProfile = [
   authenticateToken(["dokter"]),
   async (req, res) => {
     try {
-      const { name, spesialis } = req.body;
+      const { name, spesialis, password } = req.body;
       const doctorId = req.user?.id;
 
       if (!name || !spesialis) {
@@ -295,12 +360,22 @@ exports.updateProfile = [
           .status(400)
           .json({ message: "Nama dan spesialis wajib diisi" });
       }
-      await pool.query(
-        `UPDATE doctors 
-         SET name = ?, spesialis = ? 
-         WHERE id = ?`,
-        [name, spesialis, doctorId]
-      );
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await pool.query(
+          `UPDATE doctors 
+           SET name = ?, spesialis = ?, password = ? 
+           WHERE id = ?`,
+          [name, spesialis, hashedPassword, doctorId]
+        );
+      } else {
+        await pool.query(
+          `UPDATE doctors 
+           SET name = ?, spesialis = ? 
+           WHERE id = ?`,
+          [name, spesialis, doctorId]
+        );
+      }
 
       return res.status(200).json({ message: "Profil berhasil diperbarui" });
     } catch (error) {

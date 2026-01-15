@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 const DaftarDokter = () => {
   const [doctors, setDoctors] = useState([]);
   const navigate = useNavigate();
+
   const fetchDoctors = () => {
     fetch(`${import.meta.env.VITE_BASE_URL}/api/pasien/doctors`, {
       headers: {
@@ -32,27 +33,34 @@ const DaftarDokter = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarPasien />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        <main className="flex-1 w-full ml-0 md:ml-7 p-4 pt-20 md:p-10 lg:p-20 transition-all duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">
             Daftar Dokter
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {doctors.map((doctor) => (
-              <Card key={doctor.id}>
+              <Card
+                key={doctor.id}
+                className="flex flex-col justify-between h-full"
+              >
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                    <span className="text-teal-600 font-bold">
+                  <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-teal-600 font-bold text-lg">
                       {doctor.name ? doctor.name.charAt(0) : "D"}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-semibold">{doctor.name}</h3>
-                    <p className="text-sm text-gray-600">{doctor.spesialis}</p>
+                    <h3 className="font-semibold text-gray-800 text-sm md:text-base">
+                      {doctor.name}
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">
+                      {doctor.spesialis}
+                    </p>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
+                      className={`text-[10px] md:text-xs px-2 py-1 rounded-full border ${
                         doctor.status === "online"
-                          ? "bg-green-100 text-green-600 border border-green-200"
-                          : "bg-gray-100 text-gray-600 border border-gray-200"
+                          ? "bg-green-100 text-green-600 border-green-200"
+                          : "bg-gray-100 text-gray-600 border-gray-200"
                       }`}
                     >
                       {doctor.status === "online" ? "Online" : "Offline"}
@@ -67,7 +75,7 @@ const DaftarDokter = () => {
                     })
                   }
                   variant={doctor.status === "online" ? "primary" : "secondary"}
-                  className="w-full"
+                  className="w-full mt-auto"
                   disabled={doctor.status !== "online"}
                 >
                   {doctor.status === "online" ? "Konsultasi" : "Offline"}

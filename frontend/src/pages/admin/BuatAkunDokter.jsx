@@ -12,7 +12,6 @@ const BuatAkunDokter = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // Inisialisasi SweetAlert
   const showSuccessAlert = SweetAlert({
     title: "Sukses",
     text: "Akun dokter berhasil dibuat!",
@@ -32,13 +31,11 @@ const BuatAkunDokter = () => {
     e.preventDefault();
     const token = localStorage.getItem("adminToken");
     if (!token) {
-      console.error("Token tidak ditemukan");
       navigate("/login");
       return;
     }
 
     const doctorData = { name, username, spesialis, password };
-    console.log("Mengirim data:", doctorData);
 
     try {
       const response = await fetch(
@@ -54,7 +51,6 @@ const BuatAkunDokter = () => {
       );
 
       const data = await response.json();
-      console.log("Respons dari server:", data);
 
       if (response.ok) {
         showSuccessAlert();
@@ -66,7 +62,6 @@ const BuatAkunDokter = () => {
         showErrorAlert({ text: data.message || "Gagal membuat akun dokter" });
       }
     } catch (error) {
-      console.error("Error creating doctor account:", error);
       showErrorAlert({ text: "Terjadi kesalahan saat membuat akun dokter" });
     }
   };
@@ -75,12 +70,12 @@ const BuatAkunDokter = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarAdmin />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        <main className="flex-1 w-full ml-0 md:ml-7 p-4 pt-20 md:p-10 lg:p-20 transition-all duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">
             Buat Akun Dokter
           </h2>
           <Card>
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nama Lengkap
@@ -133,7 +128,7 @@ const BuatAkunDokter = () => {
                   required
                 />
               </div>
-              <Button type="submit" variant="primary" className="w-full">
+              <Button type="submit" variant="primary" className="w-full mt-4">
                 Buat Akun
               </Button>
             </form>

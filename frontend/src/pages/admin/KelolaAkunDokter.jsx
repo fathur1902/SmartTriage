@@ -2,16 +2,16 @@ import { useState, useEffect } from "react";
 import SidebarAdmin from "../../components/SidebarAdmin";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
-import Swal from "sweetalert2"; 
+import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 const KelolaAkunDokter = () => {
   const [doctors, setDoctors] = useState([]);
   const navigate = useNavigate();
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) {
-      console.error("Token tidak ditemukan");
       navigate("/login");
       return;
     }
@@ -19,28 +19,18 @@ const KelolaAkunDokter = () => {
     fetch(`${import.meta.env.VITE_BASE_URL}/api/admin/doctors`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         if (data.data) setDoctors(data.data);
-        else console.warn("Data dokter tidak ditemukan:", data);
       })
       .catch((error) => console.error("Error fetching doctors:", error));
   }, [navigate]);
 
   const handleToggleStatus = (id) => {
     const token = localStorage.getItem("adminToken");
-
-    if (!token) {
-      console.error("Token tidak ditemukan");
-      navigate("/login");
-      return;
-    }
     Swal.fire({
       title: "Konfirmasi",
-      text: "Apakah Anda yakin ingin mengubah status akun dokter ini?",
+      text: "Ubah status akun dokter ini?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -59,21 +49,10 @@ const KelolaAkunDokter = () => {
             },
           }
         )
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            return res.json();
-          })
+          .then((res) => res.json())
           .then((data) => {
-            console.log("Toggle response:", data);
             if (data.message) {
-              // Tampilkan Sukses
-              Swal.fire({
-                title: "Sukses",
-                text: "Status akun dokter berhasil diperbarui!",
-                icon: "success",
-              });
-
-              // Update State Lokal
+              Swal.fire("Sukses", "Status berhasil diperbarui!", "success");
               setDoctors((prevDoctors) =>
                 prevDoctors.map((doctor) =>
                   doctor.id === id
@@ -83,10 +62,6 @@ const KelolaAkunDokter = () => {
                           doctor.account_status === "Aktif"
                             ? "Nonaktif"
                             : "Aktif",
-                        status:
-                          doctor.account_status === "Aktif"
-                            ? "offline"
-                            : doctor.status,
                       }
                     : doctor
                 )
@@ -95,14 +70,7 @@ const KelolaAkunDokter = () => {
               Swal.fire("Error", "Gagal memperbarui status", "error");
             }
           })
-          .catch((error) => {
-            console.error("Error toggling status:", error);
-            Swal.fire(
-              "Error",
-              "Terjadi kesalahan saat memperbarui status",
-              "error"
-            );
-          });
+          .catch(() => Swal.fire("Error", "Terjadi kesalahan", "error"));
       }
     });
   };
@@ -111,17 +79,19 @@ const KelolaAkunDokter = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarAdmin />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Daftar Dokter
+        <main className="flex-1 w-full ml-0 md:ml-7 p-4 pt-20 md:p-10 lg:p-20 transition-all duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">
+            Daftar Akun Dokter
           </h2>
           <div className="space-y-4">
             {doctors.map((doctor) => (
               <Card key={doctor.id}>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h3 className="font-semibold">{doctor.name}</h3>
-                    <p className="text-sm text-gray-600">{doctor.spesialis}</p>
+                    <h3 className="font-semibold text-lg">{doctor.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {doctor.spesialis}
+                    </p>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
                         doctor.account_status === "Aktif"
@@ -132,15 +102,18 @@ const KelolaAkunDokter = () => {
                       {doctor.account_status}
                     </span>
                   </div>
-                  <Button
-                    onClick={() => handleToggleStatus(doctor.id)}
-                    variant="primary"
-                    size="sm"
-                  >
-                    {doctor.account_status === "Aktif"
-                      ? "Nonaktifkan"
-                      : "Aktifkan"}
-                  </Button>
+                  <div className="w-full sm:w-auto">
+                    <Button
+                      onClick={() => handleToggleStatus(doctor.id)}
+                      variant="primary"
+                      size="sm"
+                      className="w-full sm:w-auto justify-center"
+                    >
+                      {doctor.account_status === "Aktif"
+                        ? "Nonaktifkan"
+                        : "Aktifkan"}
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}

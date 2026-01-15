@@ -78,3 +78,11 @@ CREATE TABLE IF NOT EXISTS triage_result (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    consultation_id INT NOT NULL,
+    sender_role ENUM('dokter', 'pasien') NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (consultation_id) REFERENCES consultations(id) ON DELETE CASCADE
+);

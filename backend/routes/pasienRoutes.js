@@ -8,5 +8,7 @@ router.get("/dashboard", pasienController.getDashboard);
 router.get("/history", pasienController.getConsultationHistory);
 router.post("/consultation", pasienController.sendConsultationMessage);
 router.get("/doctors", pasienController.getDoctorsList);
+router.get("/check-active-consultation", pasienController.checkActiveConsultation);
+router.get("/chat/:consultationId", pasienController.getConsultationChat);
 
 module.exports = router;

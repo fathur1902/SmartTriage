@@ -9,11 +9,9 @@ const KelolaAkunPasien = () => {
   const [patients, setPatients] = useState([]);
   const navigate = useNavigate();
 
-  // Ambil daftar pasien dari API
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) {
-      console.error("Token tidak ditemukan");
       navigate("/login");
       return;
     }
@@ -21,35 +19,25 @@ const KelolaAkunPasien = () => {
     fetch(`${import.meta.env.VITE_BASE_URL}/api/admin/patients`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         if (data.data) setPatients(data.data);
-        else console.warn("Data pasien tidak ditemukan:", data);
       })
       .catch((error) => console.error("Error fetching patients:", error));
   }, [navigate]);
 
   const handleBlock = (id) => {
     const token = localStorage.getItem("adminToken");
-    if (!token) {
-      console.error("Token tidak ditemukan");
-      navigate("/login");
-      return;
-    }
     Swal.fire({
       title: "Konfirmasi",
-      text: "Apakah Anda yakin ingin memblokir akun pasien ini?",
+      text: "Apakah Anda yakin ingin mengubah status akun ini?",
       icon: "warning",
-      showCancelButton: true, 
+      showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Ya",
       cancelButtonText: "Batal",
     }).then((result) => {
-      // Cek jika tombol 'Ya' diklik
       if (result.isConfirmed) {
         fetch(
           `${import.meta.env.VITE_BASE_URL}/api/admin/patients/${id}/toggle`,
@@ -61,21 +49,14 @@ const KelolaAkunPasien = () => {
             },
           }
         )
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            return res.json();
-          })
+          .then((res) => res.json())
           .then((data) => {
-            console.log("Toggle response:", data);
             if (data.message) {
-              // Tampilkan Alert Sukses
-              Swal.fire({
-                title: "Sukses",
-                text: "Status akun pasien berhasil diperbarui!",
-                icon: "success",
-              });
-
-              // Update State Lokal
+              Swal.fire(
+                "Sukses",
+                "Status akun pasien berhasil diperbarui!",
+                "success"
+              );
               setPatients((prevPatients) =>
                 prevPatients.map((patient) =>
                   patient.id === id
@@ -91,14 +72,7 @@ const KelolaAkunPasien = () => {
               Swal.fire("Error", "Gagal memperbarui status", "error");
             }
           })
-          .catch((error) => {
-            console.error("Error toggling status:", error);
-            Swal.fire(
-              "Error",
-              "Terjadi kesalahan saat memperbarui status",
-              "error"
-            );
-          });
+          .catch(() => Swal.fire("Error", "Terjadi kesalahan", "error"));
       }
     });
   };
@@ -107,17 +81,19 @@ const KelolaAkunPasien = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarAdmin />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        <main className="flex-1 w-full ml-0 md:ml-7 p-4 pt-20 md:p-10 lg:p-20 transition-all duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">
             Daftar Akun Pasien
           </h2>
           <div className="space-y-4">
             {patients.map((patient) => (
               <Card key={patient.id}>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h3 className="font-semibold">{patient.name}</h3>
-                    <p className="text-sm text-gray-600">{patient.username}</p>
+                    <h3 className="font-semibold text-lg">{patient.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {patient.username}
+                    </p>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
                         patient.status === "Aktif"
@@ -128,11 +104,12 @@ const KelolaAkunPasien = () => {
                       {patient.status || "Aktif"}
                     </span>
                   </div>
-                  <div className="space-x-2">
+                  <div className="w-full sm:w-auto">
                     <Button
                       onClick={() => handleBlock(patient.id)}
                       variant="primary"
                       size="sm"
+                      className="w-full sm:w-auto justify-center"
                     >
                       {patient.status === "Aktif"
                         ? "Blokir Akun"

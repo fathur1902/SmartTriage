@@ -7,6 +7,9 @@ import {
   faBook,
   faUserMd,
   faNewspaper,
+  faUserPlus, // Icon baru untuk register
+  faCommentMedical, // Icon baru untuk chat
+  faStethoscope, // Icon baru untuk dokter
 } from "@fortawesome/free-solid-svg-icons";
 import {
   faInstagram,
@@ -39,8 +42,6 @@ function Home() {
           "text-teal-600"
         );
         navbar.classList.remove("bg-transparent", "text-white");
-
-        // register btn jadi hijau teks
         if (registerBtn) {
           registerBtn.classList.remove("text-white");
           registerBtn.classList.add(
@@ -118,10 +119,7 @@ function Home() {
 
         // jika overlay sebelumnya kita ubah jadi putih, kembalikan ke bg-teal-600 saat tidak scrolled
         if (navUl && navUl.classList.contains("bg-white")) {
-          // hanya revert jika overlay memang sebelumnya dimaksudkan sebagai teal
-          // (cek agar tidak mengubah tampilan desktop yang seharusnya tidak punya bg-teal-600)
           if (!navUl.classList.contains("md:flex")) {
-            // hanya untuk mobile overlay
             navUl.classList.remove("bg-white");
             navUl.classList.add("bg-teal-600");
             navUl.querySelectorAll("a").forEach((a) => {
@@ -129,14 +127,12 @@ function Home() {
               a.classList.add("text-white");
             });
           } else {
-            // jika ini bukan overlay mobile (desktop), biarkan
           }
         }
       }
     };
 
     window.addEventListener("scroll", handleScroll);
-    // panggil sekali saat mount supaya state awal sinkron
     handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
@@ -244,6 +240,15 @@ function Home() {
                 Artikel
               </a>
             </li>
+            <li>
+              <a
+                href="#panduan"
+                className="block py-2 px-4 hover:text-teal-200 md:hover:text-teal-200 drop-shadow-md"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Panduan Layanan
+              </a>
+            </li>
           </ul>
           <div className="flex items-center space-x-3">
             <a href="/login">
@@ -334,8 +339,8 @@ function Home() {
                 Telekonsultasi Online
               </h3>
               <p className="text-gray-600">
-                Konsultasi langsung dengan dokter melalui video call, kapan saja
-                dan di mana saja.
+                Konsultasi langsung dengan dokter melalui sesi live chat, kapan
+                saja dan di mana saja.
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition">
@@ -415,30 +420,18 @@ function Home() {
           <h2 className="text-3xl font-bold text-gray-800 mb-12">
             Dokter Kami
           </h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              { name: "Dr. Anna Doe", specialty: "Umum" },
-              { name: "Dr. John Smith", specialty: "Penyakit Dalam" },
-              { name: "Dr. Lisa Wong", specialty: "Anak" },
-              { name: "Dr. Mike Johnson", specialty: "Bedah" },
-            ].map((doc, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition"
-              >
-                <div className="w-full h-48 bg-gray-200 rounded-xl mb-4 flex items-center justify-center">
-                  <FontAwesomeIcon
-                    icon={faUserMd}
-                    className="w-24 h-24 text-gray-400"
-                  />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{doc.name}</h3>
-                <p className="text-gray-600 mb-4">{doc.specialty}</p>
-                <button className="text-teal-600 hover:underline">
-                  Lihat Profil
-                </button>
+          <div className="flex justify-center">
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition w-full max-w-sm">
+              <div className="w-full h-80 rounded-xl mb-4 overflow-hidden">
+                <img
+                  src="images/DrFina.jpeg"
+                  alt="Dr. Spesialis"
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
-            ))}
+              <h3 className="text-xl font-semibold mb-2">Dr. Finalistiani</h3>
+              <p className="text-gray-600 mb-4">Spesialis Dokter Umum</p>
+            </div>
           </div>
         </div>
       </motion.section>
@@ -496,8 +489,6 @@ function Home() {
             </button>
           </div>
         </div>
-
-        {/* Popup untuk detail artikel */}
         {selectedArticle && (
           <div className="fixed inset-0 bg-teal-600 flex items-center justify-center z-50 scrollbar-hidden">
             <div className="bg-white p-8 rounded-lg max-w-6xl w-11/12 h-[90vh] overflow-y-auto">
@@ -538,15 +529,12 @@ function Home() {
                       if (currentSection) {
                         currentSection.content.push(line.trim());
                       } else {
-                        // Jika tidak ada section bernomor, simpan sebagai paragraf biasa
                         sections.push({ content: [line.trim()] });
                       }
                     }
                   });
 
                   if (currentSection) sections.push(currentSection);
-
-                  // Render berdasarkan apakah ada section bernomor
                   if (hasNumberedSections) {
                     return sections.map((sec, idx) => (
                       <div key={idx} className="mb-4">
@@ -572,6 +560,59 @@ function Home() {
             </div>
           </div>
         )}
+      </motion.section>
+
+      {/* CARA PENGGUNAAN */}
+      <motion.section
+        variants={fadeInUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: false, amount: 0.3 }}
+        transition={{ duration: 0.8 }}
+        className="py-32 px-4 bg-gray-50"
+        id="panduan"
+      >
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-gray-800 mb-16">
+            Cara Menggunakan Layanan
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-teal-200 -z-10 transform -translate-y-1/2"></div>
+            <div className="bg-white p-8 rounded-2xl shadow-md relative">
+              <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6 border-4 border-white shadow">
+                <FontAwesomeIcon icon={faUserPlus} className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">1. Daftar & Login</h3>
+              <p className="text-gray-600">
+                Buat akun baru atau masuk untuk memulai konsultasi dengan
+                dokter.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-md relative">
+              <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6 border-4 border-white shadow">
+                <FontAwesomeIcon icon={faCommentMedical} className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">2. Chatbot Triase</h3>
+              <p className="text-gray-600">
+                Ceritakan gejala Anda pada AI kami untuk mengetahui tingkat
+                urgensi medis dan mempermudah dokter kami.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-md relative">
+              <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6 border-4 border-white shadow">
+                <FontAwesomeIcon icon={faStethoscope} className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">
+                3. Konsultasi Dokter
+              </h3>
+              <p className="text-gray-600">
+                Lanjutkan konsultasi dengan dokter kami dari hasil triage Anda
+                untuk penanganan lebih lanjut.
+              </p>
+            </div>
+          </div>
+        </div>
       </motion.section>
 
       {/* Footer */}

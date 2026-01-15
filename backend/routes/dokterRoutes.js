@@ -5,10 +5,12 @@ const dokterController = require("../controllers/dokterController");
 router.get("/dashboard", dokterController.getDashboardStats);
 router.get("/pasien-masuk", dokterController.getIncomingPatients);
 router.get("/riwayat-pasien", dokterController.getPatientHistory);
-router.get("/konsultasi", dokterController.startConsultation);
 router.post("/konsultasi", dokterController.sendMessageAndSaveDiagnosis);
 router.get("/profile", dokterController.getProfile);
 router.put("/profile", dokterController.updateProfile);
 router.put("/triage-complete/:triageId", dokterController.markTriageComplete);
+router.post("/start-consultation", dokterController.startConsultation);
+router.post("/end-consultation", dokterController.endConsultation);
+router.get("/chat/:consultationId", dokterController.getConsultationChat);
 
 module.exports = router;

@@ -2,155 +2,173 @@ import { useState, useEffect } from "react";
 import SidebarPasien from "../../components/SidebarPasien";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
-import { useNavigate } from "react-router-dom";
-import SweetAlert from "../../components/SweetAlert"; 
+import Swal from "sweetalert2";
 
 const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
-  const [username, setUsername] = useState(""); 
-  const [password, setPassword] = useState(""); 
-  const navigate = useNavigate();
-
-  // Alert konfigurasi
-  const showSuccessAlert = SweetAlert({
-    title: "Sukses",
-    text: "Profil berhasil diperbarui!",
-    icon: "success",
-    showCancel: false,
-    confirmButtonText: "OK",
-    onConfirm: () => {},
-  });
-
-  const showErrorAlert = SweetAlert({
-    title: "Gagal",
-    text: "Terjadi kesalahan saat memperbarui profil.",
-    icon: "error",
-    showCancel: false,
-    confirmButtonText: "OK",
-    onConfirm: () => {},
-  });
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BASE_URL}/api/pasien/profile`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) {
-          setName(data.data.name || ""); // Gunakan default kosong jika tidak ada
-          setUsername(data.data.username || ""); // Gunakan default kosong jika tidak ada
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("pasienToken");
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BASE_URL}/api/pasien/profile`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+
+        if (res.ok && data.data) {
+          setName(data.data.name);
+          setUsername(data.data.username || "");
         }
-      })
-      .catch((error) => console.error("Error fetching profile:", error));
+      } catch (err) {
+        console.error("Gagal mengambil profil:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
   }, []);
 
-  const handleSave = () => {
-    fetch(`${import.meta.env.VITE_BASE_URL}/api/pasien/profile`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
-      },
-      body: JSON.stringify({ name, username, password }), // Sertakan password
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setEditing(false);
-        setPassword(""); // Reset password setelah simpan
-        if (data.message === "Profil berhasil diperbarui") {
-          showSuccessAlert();
-        } else {
-          showErrorAlert();
+  const handleSave = async () => {
+    const token = localStorage.getItem("pasienToken");
+    Swal.showLoading();
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BASE_URL}/api/pasien/profile`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name, username, password }),
         }
-      })
-      .catch((error) => {
-        console.error("Error updating profile:", error);
-        showErrorAlert();
-      });
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil",
+          text: "Profil berhasil diperbarui!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        setEditing(false);
+        setPassword("");
+      } else {
+        Swal.fire("Gagal", data.message || "Gagal update profil", "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
+    }
   };
 
-  const handleChangePassword = () => {
-    setEditing(true); // Aktifkan mode edit untuk mengisi password
-  };
+  if (loading)
+    return <div className="p-8 text-center pt-24">Memuat profil...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <SidebarPasien />
-        <main className="flex-1 ml-7 p-20">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        <main className="flex-1 w-full ml-0 md:ml-7 p-4 pt-20 md:p-10 lg:p-20 transition-all duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">
             Profil Pasien
           </h2>
+
           <Card>
             <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl text-teal-600">J</span>
+              <div className="flex flex-col sm:flex-row items-center sm:space-x-6 space-y-4 sm:space-y-0 pb-4 border-b border-gray-100 sm:border-0">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-3xl md:text-4xl text-teal-600 font-bold">
+                    {name ? name.charAt(0).toUpperCase() : "U"}
+                  </span>
+                </div>
+                <div className="text-center sm:text-left">
+                  <h3 className="text-xl md:text-2xl font-semibold text-gray-800">
+                    {name}
+                  </h3>
+                  <p className="text-gray-500">@{username}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!editing}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-500 transition-colors"
+                  />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold">{name}</h3>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={!editing}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-500 transition-colors"
+                  />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Lengkap
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
-                  disabled={!editing}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
-                  disabled={!editing}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password Baru (Opsional)
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500"
-                  disabled={!editing}
-                  placeholder="Masukkan password baru jika ingin mengubah"
-                />
-              </div>
-              <div className="flex space-x-4">
-                <Button
-                  onClick={() => setEditing(!editing)}
-                  variant="secondary"
-                >
-                  {editing ? "Batal" : "Edit"}
-                </Button>
+
                 {editing && (
-                  <Button onClick={handleSave} variant="primary">
-                    Simpan
+                  <div className="pt-4 border-t border-gray-100 mt-4 animate-fade-in">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password Baru{" "}
+                      <span className="text-gray-400 font-normal">
+                        (Opsional)
+                      </span>
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Isi jika ingin mengganti password"
+                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-teal-500 bg-white"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Kosongkan jika tidak ingin mengubah password.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setEditing(!editing);
+                    setPassword("");
+                  }}
+                  variant="secondary"
+                  className="w-full sm:w-auto justify-center"
+                >
+                  {editing ? "Batal" : "Edit Profil"}
+                </Button>
+
+                {editing && (
+                  <Button
+                    onClick={handleSave}
+                    variant="primary"
+                    className="w-full sm:w-auto justify-center"
+                  >
+                    Simpan Perubahan
                   </Button>
                 )}
               </div>
-              <Button
-                onClick={handleChangePassword}
-                variant="secondary"
-                className="w-full"
-              >
-                Ganti Password
-              </Button>
             </div>
           </Card>
         </main>

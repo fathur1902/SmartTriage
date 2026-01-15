@@ -1,6 +1,6 @@
 const { authenticateToken } = require("../middleware/authenticate");
 const pool = require("../config/db");
-const bcrypt = require("bcryptjs"); // Pastikan bcrypt diinstall (npm install bcrypt)
+const bcrypt = require("bcryptjs");
 
 exports.getProfile = [
   authenticateToken(["pasien"]),
@@ -104,11 +104,28 @@ exports.getDashboard = [
         onlineDoctors[0].count > 0
           ? `${onlineDoctors[0].count} Dokter Online`
           : "Tidak ada Dokter Online";
+      const [recentHistory] = await pool.query(
+        `SELECT 
+            c.id, 
+            c.consultation_date, 
+            c.status, 
+            c.summary,
+            d.name as doctor_name,
+            t.symptom  -- Ambil gejala dari tabel triage
+         FROM consultations c
+         LEFT JOIN doctors d ON c.doctor_id = d.id
+         LEFT JOIN triage_result t ON c.triage_id = t.id -- Join pakai kolom baru tadi
+         WHERE c.patient_id = ?
+         ORDER BY c.consultation_date DESC 
+         LIMIT 5`,
+        [patientId]
+      );
 
       const dashboardData = {
         completedConsultations: consultationCount[0].count,
-        chatbotHistory: triageCount[0].count, 
-        doctorStatus: doctorStatusDisplay, 
+        chatbotHistory: triageCount[0].count,
+        doctorStatus: doctorStatusDisplay,
+        recentHistory: recentHistory,
       };
 
       res.status(200).json({
@@ -127,7 +144,19 @@ exports.getConsultationHistory = [
   async (req, res) => {
     try {
       const [rows] = await pool.query(
-        "SELECT c.id, c.consultation_date, d.name AS doctor, c.summary, c.type FROM consultations c LEFT JOIN doctors d ON c.doctor_id = d.id WHERE c.patient_id = ? ORDER BY c.consultation_date DESC",
+        `SELECT 
+            c.id, 
+            c.consultation_date, 
+            c.status, 
+            d.name AS doctor, 
+            c.summary, 
+            c.type,
+            t.symptom   -- Mengambil gejala dari tabel triage
+         FROM consultations c 
+         LEFT JOIN doctors d ON c.doctor_id = d.id 
+         LEFT JOIN triage_result t ON c.triage_id = t.id -- Menghubungkan ke triage
+         WHERE c.patient_id = ? 
+         ORDER BY c.consultation_date DESC`,
         [req.user.id]
       );
       res.status(200).json({
@@ -137,6 +166,24 @@ exports.getConsultationHistory = [
     } catch (error) {
       console.error("Error in getConsultationHistory:", error);
       res.status(500).json({ message: "Terjadi kesalahan server" });
+    }
+  },
+];
+
+// AMBIL RIWAYAT CHAT (Untuk Pasien)
+exports.getConsultationChat = [
+  authenticateToken(["pasien"]),
+  async (req, res) => {
+    try {
+      const { consultationId } = req.params;
+      const [rows] = await pool.query(
+        "SELECT * FROM chat_messages WHERE consultation_id = ? ORDER BY created_at ASC",
+        [consultationId]
+      );
+      res.status(200).json({ data: rows });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error server" });
     }
   },
 ];
@@ -192,6 +239,40 @@ exports.getDoctorsList = [
     } catch (error) {
       console.error("Error in getDoctorsList:", error);
       res.status(500).json({ message: "Terjadi kesalahan server" });
+    }
+  },
+];
+
+exports.checkActiveConsultation = [
+  authenticateToken(["pasien"]),
+  async (req, res) => {
+    try {
+      const patientId = req.user.id;
+
+      const [rows] = await pool.query(
+        `SELECT c.id, c.status, d.name as doctor_name 
+         FROM consultations c 
+         JOIN doctors d ON c.doctor_id = d.id 
+         WHERE c.patient_id = ? 
+         AND c.status = 'active'  
+         LIMIT 1`,
+        [patientId]
+      );
+
+      if (rows.length > 0) {
+        const responseData = {
+          found: true,
+          consultationId: rows[0].id,
+          status: rows[0].status,
+          doctorName: rows[0].doctor_name,
+        };
+        return res.status(200).json(responseData);
+      } else {
+        return res.status(200).json({ found: false });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error server" });
     }
   },
 ];

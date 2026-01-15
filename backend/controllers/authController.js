@@ -170,3 +170,51 @@ exports.logoutDokter = [
     }
   },
 ];
+
+// RESET PASSWORD 
+exports.resetPassword = async (req, res) => {
+  const { username, newPassword, confirmPassword } = req.body;
+  if (!username || !newPassword || !confirmPassword) {
+    return res.status(400).json({ message: "Semua field wajib diisi" });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res
+      .status(400)
+      .json({ message: "Password baru dan konfirmasi tidak cocok" });
+  }
+
+  try {
+    let table = "";
+    const [patient] = await pool.query(
+      "SELECT id FROM patients WHERE username = ?",
+      [username]
+    );
+    if (patient.length > 0) {
+      table = "patients";
+    } else {
+      const [doctor] = await pool.query(
+        "SELECT id FROM doctors WHERE username = ?",
+        [username]
+      );
+      if (doctor.length > 0) {
+        table = "doctors";
+      }
+    }
+    if (!table) {
+      return res.status(404).json({ message: "Username tidak ditemukan." });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE ${table} SET password = ? WHERE username = ?`, [
+      hashedPassword,
+      username,
+    ]);
+
+    res
+      .status(200)
+      .json({ message: "Password berhasil diperbarui! Silakan login." });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({ message: "Terjadi kesalahan server" });
+  }
+};
