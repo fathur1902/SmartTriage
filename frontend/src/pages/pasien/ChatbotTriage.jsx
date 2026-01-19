@@ -13,6 +13,7 @@ const ChatbotTriage = () => {
   const [triageResult, setTriageResult] = useState("");
   const [popupTitle, setPopupTitle] = useState("Hasil Triase Anda");
   const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const resetChatSession = () => {
     setMessages([
@@ -45,7 +46,7 @@ const ChatbotTriage = () => {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
               },
-            }
+            },
           );
           const data = await res.json();
           if (data && data.found === true) {
@@ -89,6 +90,7 @@ const ChatbotTriage = () => {
     setMessages((prev) => [...prev, { text: input, isUser: true }]);
     const currentInput = input;
     setInput("");
+    setIsLoading(true);
 
     try {
       const response = await fetch(
@@ -100,7 +102,7 @@ const ChatbotTriage = () => {
             Authorization: `Bearer ${localStorage.getItem("pasienToken")}`,
           },
           body: JSON.stringify({ message: currentInput }),
-        }
+        },
       );
 
       if (!response.ok) throw new Error(`Server returned ${response.status}`);
@@ -134,6 +136,8 @@ const ChatbotTriage = () => {
         ...prev,
         { text: "Terjadi kesalahan koneksi, coba lagi nanti.", isUser: false },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -156,6 +160,17 @@ const ChatbotTriage = () => {
                   isUser={msg.isUser}
                 />
               ))}
+              {isLoading && (
+                <div className="flex justify-start animate-pulse">
+                  <div className="bg-gray-200 text-gray-500 px-4 py-3 rounded-lg rounded-tl-none text-sm">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <form
@@ -172,9 +187,10 @@ const ChatbotTriage = () => {
               <Button
                 type="submit"
                 variant="primary"
-                className="whitespace-nowrap"
+                className={`whitespace-nowrap ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={isLoading}
               >
-                Kirim
+                {isLoading ? "..." : "Kirim"}
               </Button>
             </form>
           </Card>

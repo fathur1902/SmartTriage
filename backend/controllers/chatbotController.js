@@ -32,7 +32,9 @@ exports.askChatbot = [
         },
       };
 
-      const responses = await sessionClient.detectIntent(request);
+      const responses = await sessionClient.detectIntent(request,{
+        timeout: 15000,
+      });
       const result = responses[0].queryResult;
       const reply =
         result.fulfillmentText || "Maaf, saya belum punya jawaban untuk itu.";
