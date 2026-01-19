@@ -23,7 +23,7 @@ exports.askChatbot = [
 
       const sessionPath = sessionClient.sessionPath(
         projectId,
-        `session-${patientId}`
+        `session-${patientId}`,
       );
       const request = {
         session: sessionPath,
@@ -32,8 +32,8 @@ exports.askChatbot = [
         },
       };
 
-      const responses = await sessionClient.detectIntent(request,{
-        timeout: 15000,
+      const responses = await sessionClient.detectIntent(request, {
+        timeout: 40000,
       });
       const result = responses[0].queryResult;
       const reply =
@@ -41,7 +41,7 @@ exports.askChatbot = [
       const intentName = result.intent ? result.intent.displayName : "Unknown";
       await pool.query(
         `INSERT INTO conversation_logs (patient_id, message, response) VALUES (?, ?, ?)`,
-        [patientId, message, reply]
+        [patientId, message, reply],
       );
 
       res.status(200).json({ reply, intent: intentName });
@@ -69,7 +69,7 @@ exports.triageWebhook = async (req, res) => {
     // --- 0. FALLBACK HANDLER ---
     if (intentName === "Default Fallback Intent") {
       const fallbackCtx = currentContexts.find((c) =>
-        c.name.endsWith("fallback-counter")
+        c.name.endsWith("fallback-counter"),
       );
       let failCount = fallbackCtx ? Number(fallbackCtx.parameters.count) : 0;
       failCount++;
@@ -86,7 +86,7 @@ exports.triageWebhook = async (req, res) => {
             "-",
             "Non-Darurat",
             "Pasien kesulitan menggunakan chatbot (3x Fallback). Butuh bantuan manual.",
-          ]
+          ],
         );
 
         // Beritahu dokter via Socket
@@ -155,7 +155,7 @@ exports.triageWebhook = async (req, res) => {
 
       // Ambil gejala dari context sebelumnya
       const triageCtx = currentContexts.find((c) =>
-        c.name.endsWith("triage-data")
+        c.name.endsWith("triage-data"),
       );
       const prevSymptom = triageCtx?.parameters?.symptom || "gejala";
 
@@ -181,7 +181,7 @@ exports.triageWebhook = async (req, res) => {
 
       // 1. Ambil Data Context Lengkap
       const triageCtx = currentContexts.find((ctx) =>
-        ctx.name.endsWith("/contexts/triage-data")
+        ctx.name.endsWith("/contexts/triage-data"),
       );
       const symptom = triageCtx?.parameters?.symptom || "Tidak diketahui";
       let severity = triageCtx?.parameters?.severity || "Tidak diketahui";
@@ -193,7 +193,7 @@ exports.triageWebhook = async (req, res) => {
         .replace(/[^\w\s]/gi, " ") // Hapus simbol
         .replace(
           /\b(saya|aku|rasa|merasa|sakit|nyeri|pada|di|bagian|yg|yang|mengalami)\b/gi,
-          " "
+          " ",
         )
         .trim();
 
@@ -204,7 +204,7 @@ exports.triageWebhook = async (req, res) => {
       // Coba Exact Match
       [rule] = await pool.query(
         `SELECT priority, description FROM triage_rules WHERE ? LIKE CONCAT('%', keyword, '%') LIMIT 1`,
-        [symptom]
+        [symptom],
       );
 
       // Coba Partial Match jika Exact gagal
@@ -214,7 +214,7 @@ exports.triageWebhook = async (req, res) => {
           .join(" OR ");
         [rule] = await pool.query(
           `SELECT priority, description FROM triage_rules WHERE ${conditions} ORDER BY FIELD(priority, 'Emergency', 'Darurat', 'Non-Darurat') ASC LIMIT 1`,
-          searchWords
+          searchWords,
         );
       }
 
@@ -230,11 +230,11 @@ exports.triageWebhook = async (req, res) => {
 
       // Regex Keparahan
       const isRingan = /ringan|dikit|kecil|biasa|kurang|awal|low/i.test(
-        sevLower
+        sevLower,
       );
       const isBerat =
         /berat|parah|hebat|sangat|banget|sekali|tinggi|hancur|darurat|intens/i.test(
-          sevLower
+          sevLower,
         );
       const isKronis = /minggu|bulan|tahun|lama|menahun/i.test(durLower);
 
@@ -331,7 +331,7 @@ Silakan tunggu, saya akan menghubungkan Anda dengan dokter.
       await pool.query(
         `INSERT INTO triage_result (patient_id, symptom, severity, duration, priority, description, status)
          VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-        [patientId, symptom, severity, duration, finalPriority, description]
+        [patientId, symptom, severity, duration, finalPriority, description],
       );
 
       // Trigger Socket.io (Update Dashboard Dokter)
