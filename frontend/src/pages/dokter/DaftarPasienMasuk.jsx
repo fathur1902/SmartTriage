@@ -216,7 +216,7 @@ const DaftarPasienMasuk = () => {
                           }
                           variant="contrast"
                           size="sm"
-                          className="w-full md:w-auto justify-center"
+                          className="w-full md:w-auto bg-gray-50 justify-center"
                         >
                           Mulai Konsultasi
                         </Button>
