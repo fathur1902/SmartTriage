@@ -214,9 +214,9 @@ const DaftarPasienMasuk = () => {
                               p.patient_name,
                             )
                           }
-                          variant="contrast"
+                          variant="primary"
                           size="sm"
-                          className="w-full md:w-auto bg-gray-50 justify-center"
+                          className="w-full md:w-auto justify-center"
                         >
                           Mulai Konsultasi
                         </Button>
