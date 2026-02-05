@@ -29,7 +29,7 @@ const DaftarPasienMasuk = () => {
         }/api/dokter/pasien-masuk?status=${activeTab}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       const data = await res.json();
       if (res.ok) {
@@ -73,7 +73,7 @@ const DaftarPasienMasuk = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ triageId, patientId }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -82,7 +82,7 @@ const DaftarPasienMasuk = () => {
         navigate(
           `/dokter/konsultasi?consultationId=${
             data.consultationId
-          }&patientName=${encodeURIComponent(patientName)}`
+          }&patientName=${encodeURIComponent(patientName)}`,
         );
       } else {
         alert(data.message || "Gagal memulai konsultasi");
@@ -161,7 +161,7 @@ const DaftarPasienMasuk = () => {
                         </h3>
                         <span
                           className={`text-[10px] md:text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(
-                            p.priority
+                            p.priority,
                           )}`}
                         >
                           {p.priority}
@@ -211,10 +211,10 @@ const DaftarPasienMasuk = () => {
                             handleStartConsultation(
                               p.id,
                               p.patient_id,
-                              p.patient_name
+                              p.patient_name,
                             )
                           }
-                          variant="primary"
+                          variant="contrast"
                           size="sm"
                           className="w-full md:w-auto justify-center"
                         >
