@@ -201,7 +201,6 @@ exports.triageWebhook = async (req, res) => {
 
       // 3. Cek Database (Mencari Base Priority)
       let rule = [];
-      // Coba Exact Match
       [rule] = await pool.query(
         `SELECT priority, description FROM triage_rules WHERE ? LIKE CONCAT('%', keyword, '%') LIMIT 1`,
         [symptom],
@@ -275,7 +274,6 @@ exports.triageWebhook = async (req, res) => {
           finalPriority = "Non-Darurat"; // Turun ke Hijau
           description += " (Kondisi ringan, aman rawat jalan).";
         } else if (isBerat) {
-          // REVISI: Hanya naik ke Emergency jika ada Keyword Kritis
           // Contoh: "Demam Sangat Tinggi" -> Tetap Darurat (Kuning)
           // Contoh: "Demam + Sesak Napas" -> Emergency (Merah)
           if (isCritical) {
@@ -292,9 +290,8 @@ exports.triageWebhook = async (req, res) => {
       // Contoh: "Sakit Kepala", "Gatal", "Batuk", "Nyeri Otot"
       else {
         if (isBerat) {
-          // REVISI: "Sakit Kepala Sangat Berat" -> Darurat (Kuning), BUKAN Emergency
           if (isCritical) {
-            finalPriority = "Emergency"; // Kecuali "Nyeri Dada Sangat Berat"
+            finalPriority = "Emergency"; // Naik 2 level ke Merah
           } else {
             finalPriority = "Darurat"; // Naik 1 level saja ke Kuning
             description +=

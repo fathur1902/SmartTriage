@@ -162,7 +162,6 @@ const ChatRoom = ({
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow border overflow-hidden">
-      {/* Header Chat */}
       <div
         className={`p-3 md:p-4 rounded-t-lg font-bold flex justify-between items-center ${
           isSessionEnded ? "bg-gray-600" : "bg-teal-600"
@@ -184,9 +183,6 @@ const ChatRoom = ({
           </button>
         )}
       </div>
-
-      {/* Area Pesan (Scrollable) */}
-      {/* PERUBAHAN: flex-1 dan min-h-0 agar scroll bekerja dengan benar di dalam flex container */}
       <div className="flex-1 min-h-0 overflow-y-auto p-2 md:p-4 space-y-3 bg-gray-50">
         {messages.map((msg, index) => {
           const roleToCheck = msg.sender_role || msg.senderRole;
@@ -212,7 +208,6 @@ const ChatRoom = ({
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
               <div
-                // PERUBAHAN: max-w responsive agar bubble chat lebih lebar di HP
                 className={`p-2 md:p-3 rounded-lg max-w-[80%] md:max-w-md text-xs md:text-sm ${
                   isMe
                     ? "bg-teal-600 text-white rounded-br-none"
@@ -244,8 +239,6 @@ const ChatRoom = ({
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Form Input */}
       <form
         onSubmit={handleSendMessage}
         className="p-2 md:p-4 border-t bg-white flex items-center gap-2 flex-shrink-0"

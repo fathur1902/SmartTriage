@@ -6,13 +6,18 @@ require("dotenv").config();
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
-// Register (khusus untuk pasien) - TIDAK BERUBAH
+// Register (khusus untuk pasien) 
 exports.register = async (req, res) => {
   const { name, username, password, confirmPassword } = req.body;
 
   if (!name || !username || !password || !confirmPassword) {
     return res.status(400).json({ message: "Semua field wajib diisi" });
   }
+  // if (name.trim() !== name) {
+  //   return res
+  //     .status(400)
+  //     .json({ message: "Nama tidak boleh menggunakan angka" });
+  // }
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Kata sandi tidak cocok" });
@@ -149,7 +154,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Logout Umum (Hanya response JSON, frontend hapus token)
+// Logout Umum 
 exports.logout = (req, res) => {
   res.status(200).json({ message: "Logout berhasil" });
 };

@@ -204,7 +204,7 @@ const DaftarPasienMasuk = () => {
                       </div>
                     </div>
 
-                    <div className="w-full md:w-auto mt-2 md:mt-0">
+                    <div className="w-full md:w-auto text-amber-100 mt-2 md:mt-0">
                       {activeTab === "pending" ? (
                         <Button
                           onClick={() =>
