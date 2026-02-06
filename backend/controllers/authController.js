@@ -6,18 +6,18 @@ require("dotenv").config();
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
-// Register (khusus untuk pasien) 
+// Register (khusus untuk pasien)
 exports.register = async (req, res) => {
   const { name, username, password, confirmPassword } = req.body;
 
   if (!name || !username || !password || !confirmPassword) {
     return res.status(400).json({ message: "Semua field wajib diisi" });
   }
-  // if (name.trim() !== name) {
-  //   return res
-  //     .status(400)
-  //     .json({ message: "Nama tidak boleh menggunakan angka" });
-  // }
+  if (/\d/.test(name)) {
+    return res
+      .status(400)
+      .json({ message: "Nama lengkap tidak boleh mengandung angka" });
+  }
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Kata sandi tidak cocok" });
@@ -26,7 +26,7 @@ exports.register = async (req, res) => {
   try {
     const [rows] = await pool.query(
       "SELECT * FROM patients WHERE username = ?",
-      [username]
+      [username],
     );
     if (rows.length > 0) {
       return res.status(400).json({ message: "Username sudah digunakan" });
@@ -35,7 +35,7 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       "INSERT INTO patients (name, username, password, role_id, status) VALUES (?, ?, ?, ?, 'Aktif')",
-      [name, username, hashedPassword, 3]
+      [name, username, hashedPassword, 3],
     );
 
     res.status(201).json({ message: "Registrasi berhasil" });
@@ -73,7 +73,7 @@ exports.login = async (req, res) => {
         JOIN roles r ON p.role_id = r.id
         WHERE p.username = ?
       `,
-      [username, username, username]
+      [username, username, username],
     );
 
     if (rows.length === 0) {
@@ -91,7 +91,7 @@ exports.login = async (req, res) => {
     if (user.role_name === "pasien") {
       const [patientStatus] = await pool.query(
         "SELECT status FROM patients WHERE username = ?",
-        [username]
+        [username],
       );
       if (patientStatus[0].status === "Diblokir") {
         return res.status(403).json({
@@ -104,7 +104,7 @@ exports.login = async (req, res) => {
     if (user.role_name === "dokter") {
       const [doctorStatus] = await pool.query(
         "SELECT account_status FROM doctors WHERE username = ?",
-        [username]
+        [username],
       );
       // Cek apakah akun dinonaktifkan Admin
       if (doctorStatus[0].account_status === "Nonaktif") {
@@ -120,7 +120,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role_name },
       SECRET_KEY,
-      { expiresIn: "5h" }
+      { expiresIn: "5h" },
     );
 
     let redirectTo = "/";
@@ -154,7 +154,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Logout Umum 
+// Logout Umum
 exports.logout = (req, res) => {
   res.status(200).json({ message: "Logout berhasil" });
 };
@@ -176,7 +176,7 @@ exports.logoutDokter = [
   },
 ];
 
-// RESET PASSWORD 
+// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   const { username, newPassword, confirmPassword } = req.body;
   if (!username || !newPassword || !confirmPassword) {
@@ -193,14 +193,14 @@ exports.resetPassword = async (req, res) => {
     let table = "";
     const [patient] = await pool.query(
       "SELECT id FROM patients WHERE username = ?",
-      [username]
+      [username],
     );
     if (patient.length > 0) {
       table = "patients";
     } else {
       const [doctor] = await pool.query(
         "SELECT id FROM doctors WHERE username = ?",
-        [username]
+        [username],
       );
       if (doctor.length > 0) {
         table = "doctors";
